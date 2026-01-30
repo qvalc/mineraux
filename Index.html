@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Liants & Granulats — Galerie</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <header class="top">
+    <img src="logo-site.png" alt="Liants & Granulats" class="logo">
+
+    <!-- Desktop/tablette -->
+    <div id="catButtons" class="catButtons"></div>
+
+    <!-- Mobile -->
+    <select id="catSelect" class="catSelect" aria-label="Choisir une catégorie"></select>
+  </header>
+
+  <div id="app"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <script>
+    /** =========================
+     *  IMAGES (à adapter à tes dossiers/fichiers)
+     *  Structure attendue:
+     *   - /liants/xxx.png
+     *   - /granulats/xxx.png
+     *  ========================= */
+    const IMAGES = {
+      "liants": [
+        "ciment.png",
+        "chaux.png",
+        "platre.png",
+        "mortier.png"
+      ],
+      "granulats": [
+        "sable-0-4.png",
+        "sable-0-2.png",
+        "gravier-4-8.png",
+        "gravier-8-16.png"
+      ]
+    };
+
+    /** NOMS D’AFFICHAGE (facultatif, sinon fallback auto) */
+    const DISPLAY_NAMES = {
+      "liants/ciment.png": "Ciment",
+      "liants/chaux.png": "Chaux",
+      "liants/platre.png": "Plâtre",
+      "liants/mortier.png": "Mortier",
+
+      "granulats/sable-0-4.png": "Sable 0/4",
+      "granulats/sable-0-2.png": "Sable 0/2",
+      "granulats/gravier-4-8.png": "Gravier 4/8",
+      "granulats/gravier-8-16.png": "Gravier 8/16"
+    };
+
+    /** Tailles fallback (si aucune taille n’est trouvée dans l’Excel) */
+    const CAT_SIZES = {
+      "liants": ["10 kg", "25 kg", "35 kg"],
+      "granulats": ["25 kg", "500 kg", "1 T"]
+    };
+
+    function normalizeSize(s) {
+      return String(s || "").trim();
+    }
+
+    function getSizeOptions(cat) {
+      return CAT_SIZES[cat] || [""];
+    }
+
+    /** =========================
+     *  PRIX / STOCK (inchangé)
+     *  ========================= */
+    const PRICE_MANIFEST_URL = "prix/manifest.json";
+
+    /** Map prix: clé = "path|taille" => prix_tvac */
+    let PRICE_MAP = Object.create(null);
+
+    /** Map stock: clé = "path|taille" => disponible (nombre)
+        Règle: vide = 0, <= 0 rupture, > 0 en stock
+    */
+    let STOCK_MAP = Object.create(null);
+
+    /** Index tailles dispo par article (dérivé des fichiers prix) */
+    let SIZES_BY_PATH = Object.create(null);
+
+    // UI
+    const app = document.getElementById("app");
+    const catButtons = document.getElementById("catButtons");
+    const catSelect = document.getElementById("catSelect");
+
+    /** Icônes des catégories (à mettre dans /vignettes-boutons/) */
+    const CAT_ICONS = {
+      "liants": "vignettes-boutons/liants.png",
+      "granulats": "vignettes-boutons/granulats.png"
+    };
+
+    /** Ordre + libellés */
+    const CATEGORY_UI = [
+      { id: "liants", label: "Liants" },
+      { id: "granulats", label: "Granulats" }
+    ];
+
+    const allowedCats = new Set(Object.keys(IMAGES));
+    const categories = CATEGORY_UI.filter(c => allowedCats.has(c.id));
+    let activeCat = categories[0]?.id || "__none__";
+
+    function buildCatButtons() {
+      catButtons.innerHTML = categories.map(c => {
+        const icon = CAT_ICONS[c.id];
+        return `
+          <button class="catBtn ${c.id === activeCat ? 'active' : ''}"
+                  data-cat="${c.id}" type="button">
+            ${icon ? `
+              <div class="catIcon">
+                <img src="${icon}" alt="">
+              </div>
+            ` : ``}
+            <span>${c.label}</span>
+          </button>
+        `;
+      }).join("");
+
+      catButtons.querySelectorAll("button[data-cat]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          activeCat = btn.dataset.cat;
+          syncCategoryUI();
+          render();
+        });
+      });
+    }
+
+    function buildCatSelect() {
+      catSelect.innerHTML = categories
+        .map(c => `<option value="${c.id}">${c.label}</option>`)
+        .join("");
+
+      catSelect.addEventListener("change", () => {
+        activeCat = catSelect.value;
+        syncCategoryUI();
+        render();
+      });
+    }
+
+    function syncCategoryUI() {
+      if (catSelect) catSelect.value = activeCat;
+      document.querySelectorAll("#catButtons .catBtn").forEach(b => {
+        b.classList.toggle("active", b.dataset.cat === activeCat);
+      });
+      fitCategoryButtons();
+    }
+
+    function fitCategoryButtons() {
+      if (!catButtons) return;
+      if (getComputedStyle(catButtons).display === "none") return;
+
+      const root = document.documentElement;
+      const presets = [
+        { font: 12, py: 6, px: 10, gap: 6 },
+        { font: 11, py: 5, px: 9, gap: 6 },
+        { font: 10, py: 5, px: 8, gap: 5 },
+        { font: 9, py: 4, px: 7, gap: 5 }
+      ];
+
+      const apply = (p) => {
+        root.style.setProperty("--cat-font", p.font + "px");
+        root.style.setProperty("--cat-py", p.py + "px");
+        root.style.setProperty("--cat-px", p.px + "px");
+        root.style.setProperty("--cat-gap", p.gap + "px");
+      };
+
+      const fits = () => catButtons.scrollWidth <= catButtons.clientWidth + 1;
+
+      catButtons.style.overflowX = "hidden";
+      apply(presets[0]);
+      if (fits()) return;
+
+      for (let i = 1; i < presets.length; i++) {
+        apply(presets[i]);
+        if (fits()) return;
+      }
+
+      catButtons.style.overflowX = "auto";
+      catButtons.style.webkitOverflowScrolling = "touch";
+    }
+
+    function getKey(path, taille) {
+      return `${path}|${normalizeSize(taille)}`;
+    }
+
+    function stockLabelFor(key) {
+      const v = Number(STOCK_MAP[key]);
+      return (v > 0) ? "✅ En stock" : "⚠️ Rupture";
+    }
+
+    function getStoredSize(key, fallback) {
+      try {
+        const v = localStorage.getItem("size:" + key);
+        return v ? v : fallback;
+      } catch { return fallback; }
+    }
+
+    function setStoredSize(key, val) {
+      try { localStorage.setItem("size:" + key, val); } catch { }
+    }
+
+    function pickInitialSize(pathKey, options) {
+      const stored = getStoredSize(pathKey, "");
+      if (stored && options.includes(stored)) {
+        const ks = getKey(pathKey, stored);
+        const vs = Number(STOCK_MAP[ks]);
+        if (vs > 0) return stored;
+      }
+
+      for (const opt of options) {
+        const k = getKey(pathKey, opt);
+        const v = Number(STOCK_MAP[k]);
+        if (v > 0) return opt;
+      }
+
+      return options[0] || "";
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
+      return res.json();
+    }
+
+    async function fetchXlsxAsPriceMap(xlsxUrl) {
+      const res = await fetch(xlsxUrl, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} sur ${xlsxUrl}`);
+
+      const buf = await res.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) throw new Error(`Feuille Excel introuvable dans ${xlsxUrl}`);
+
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
+
+      const map = Object.create(null);
+      const stock = Object.create(null);
+
+      for (const r of rows) {
+        let path = String(r.path || r.Path || r.PATH || "").trim();
+        const taille = normalizeSize(r.taille ?? r.Taille ?? r.TAILLE ?? "");
+        let price = r.prix_tvac ?? r.Prix_TVAC ?? r.PRIX_TVAC ?? r.prix ?? r.Prix ?? "";
+
+        let stockRaw =
+          r.disponible ??
+          r.Disponible ??
+          r.DISPO ??
+          r.dispo ??
+          r.stock ??
+          r.Stock ??
+          "";
+
+        let stockVal = String(stockRaw).trim() === ""
+          ? 0
+          : Number(String(stockRaw).replace(",", "."));
+
+        if (!Number.isFinite(stockVal)) stockVal = 0;
+        if (!path) continue;
+
+        path = path.replaceAll("\\", "/").replace(/^\.?\//, "");
+
+        if (typeof price === "string") price = price.replace(",", ".").trim();
+        const num = Number(price);
+
+        if (Number.isFinite(num)) {
+          const k = getKey(path, taille);
+          map[k] = num;
+          stock[k] = stockVal;
+        }
+      }
+
+      return { map, stock };
+    }
+
+    function buildSizesByPath(priceMap) {
+      const idx = Object.create(null);
+
+      for (const k of Object.keys(priceMap)) {
+        const sep = k.indexOf("|");
+        if (sep === -1) continue;
+
+        const pathKey = k.slice(0, sep);
+        const taille = normalizeSize(k.slice(sep + 1));
+        if (!pathKey || !taille) continue;
+
+        if (/\.(png|jpg|jpeg|webp)$/i.test(taille)) continue;
+        (idx[pathKey] ||= []).push(taille);
+      }
+
+      const collator = new Intl.Collator("fr", { numeric: true, sensitivity: "base" });
+
+      for (const p of Object.keys(idx)) {
+        const unique = Array.from(new Set(idx[p]));
+        const allNumeric = unique.every(v => /^\d+(?:[.,]\d+)?$/.test(String(v).trim()));
+
+        idx[p] = allNumeric
+          ? unique.sort((a, b) => Number(String(a).replace(",", ".")) - Number(String(b).replace(",", ".")))
+          : unique.sort((a, b) => collator.compare(String(a), String(b)));
+      }
+
+      return idx;
+    }
+
+    async function loadPricesFromFolder() {
+      try {
+        const files = await fetchJson(PRICE_MANIFEST_URL);
+        if (!Array.isArray(files) || files.length === 0) throw new Error("manifest vide ou invalide");
+
+        const merged = Object.create(null);
+        const mergedStock = Object.create(null);
+
+        for (const fname of files) {
+          const url = `prix/${fname}`;
+          try {
+            const { map, stock } = await fetchXlsxAsPriceMap(url);
+            for (const k of Object.keys(map)) merged[k] = map[k];
+            for (const k of Object.keys(stock)) mergedStock[k] = stock[k];
+          } catch (e) {
+            console.warn("Fichier prix ignoré:", url, e);
+          }
+        }
+
+        PRICE_MAP = merged;
+        STOCK_MAP = mergedStock;
+        SIZES_BY_PATH = buildSizesByPath(PRICE_MAP);
+
+      } catch (e) {
+        PRICE_MAP = Object.create(null);
+        STOCK_MAP = Object.create(null);
+        SIZES_BY_PATH = Object.create(null);
+        console.error(e);
+      }
+    }
+
+    function formatPrice(v) {
+      if (!Number.isFinite(v)) return "";
+      return (Math.round(v * 100) / 100).toFixed(2);
+    }
+
+    function render() {
+      const cat = activeCat;
+
+      if (!cat || !IMAGES[cat]) {
+        app.innerHTML = `<p class="muted">Aucune catégorie à afficher.</p>`;
+        sendHeightSoon();
+        return;
+      }
+
+      const files = (IMAGES[cat] || []);
+      if (!files.length) {
+        app.innerHTML = `<p class="muted">Aucune image à afficher.</p>`;
+        sendHeightSoon();
+        return;
+      }
+
+      let html = `<div class="grid">`;
+
+      for (const f of files) {
+        const pathKey = `${cat}/${f}`;
+        const src = `${cat}/${encodeURIComponent(f)}`;
+
+        const label = (DISPLAY_NAMES[pathKey] ?? f)
+          .replace(/\.(png|jpg|jpeg|webp)$/i, "")
+          .replace(/-/g, " ");
+
+        let options = (SIZES_BY_PATH[pathKey] && SIZES_BY_PATH[pathKey].length)
+          ? SIZES_BY_PATH[pathKey]
+          : getSizeOptions(cat);
+
+        let currentSize = pickInitialSize(pathKey, options);
+        if (currentSize && !options.includes(currentSize)) currentSize = options[0] || "";
+
+        setStoredSize(pathKey, currentSize);
+
+        const k = getKey(pathKey, currentSize);
+        const price = PRICE_MAP[k];
+        const stockText = stockLabelFor(k);
+
+        const selectId = "s_" + btoa(pathKey).replace(/=+/g, '');
+        const stockId = "st_" + btoa(pathKey).replace(/=+/g, '');
+
+        html += `
+          <figure>
+            <figcaption>${label}</figcaption>
+
+            <a class="thumb" href="${src}" target="_blank" rel="noopener">
+              <img src="${src}" alt="${label}"
+                onerror="this.style.display='none'; this.closest('figure').insertAdjacentHTML('beforeend','<div class=\\'missing\\'>❌ Introuvable : ${src}</div>')">
+            </a>
+
+            <div class="stock" id="${stockId}">${stockText}</div>
+
+            <div class="size">
+              <select id="${selectId}" data-path="${pathKey}" data-stock-id="${stockId}">
+                ${options.map(o => `<option value="${o}" ${o === currentSize ? 'selected' : ''}>${o}</option>`).join("")}
+              </select>
+            </div>
+
+            <div class="price">
+              <div class="price-label">Tvac</div>
+              ${price !== undefined
+                ? `<div class="price-amount">
+                    <span class="int">${formatPrice(price).split(".")[0]}</span>
+                    <span class="dec">${formatPrice(price).split(".")[1] || "00"}</span>
+                    <span class="eur">€</span>
+                  </div>`
+                : `<div class="price-amount muted">—</div>`
+              }
+            </div>
+          </figure>
+        `;
+      }
+
+      html += `</div>`;
+      app.innerHTML = html;
+
+      document.querySelectorAll('select[data-path]').forEach(sel => {
+        sel.addEventListener("change", () => {
+          const pathKey = sel.dataset.path;
+          const taille = normalizeSize(sel.value);
+          setStoredSize(pathKey, taille);
+
+          const k = getKey(pathKey, taille);
+
+          // prix
+          const price = PRICE_MAP[k];
+          const figure = sel.closest("figure");
+          const priceBox = figure ? figure.querySelector(".price") : null;
+
+          if (priceBox) {
+            if (price !== undefined) {
+              const s = formatPrice(price);
+              const [intPart, decPart = "00"] = s.split(".");
+              priceBox.innerHTML = `
+                <div class="price-label">Tvac</div>
+                <div class="price-amount">
+                  <span class="int">${intPart}</span>
+                  <span class="dec">${decPart}</span>
+                  <span class="eur">€</span>
+                </div>
+              `;
+            } else {
+              priceBox.innerHTML = `
+                <div class="price-label">Tvac</div>
+                <div class="price-amount muted">—</div>
+              `;
+            }
+          }
+
+          // stock
+          const stockId = sel.dataset.stockId;
+          const st = document.getElementById(stockId);
+          if (st) st.textContent = stockLabelFor(k);
+
+          sendHeightSoon();
+        });
+      });
+
+      sendHeightSoon();
+    }
+
+    (async function init() {
+      await loadPricesFromFolder();
+      buildCatButtons();
+      buildCatSelect();
+      syncCategoryUI();
+      render();
+
+      window.addEventListener("resize", () => {
+        fitCategoryButtons();
+        sendHeightSoon();
+      });
+    })();
+  </script>
+
+  <script>
+    function sendHeight() {
+      const h = Math.max(
+        document.body ? document.body.scrollHeight : 0,
+        document.documentElement ? document.documentElement.scrollHeight : 0
+      );
+
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: "resize", height: h }, "*");
+      }
+    }
+
+    function sendHeightSoon() {
+      requestAnimationFrame(() => {
+        sendHeight();
+        setTimeout(sendHeight, 150);
+        setTimeout(sendHeight, 600);
+      });
+    }
+
+    window.addEventListener("load", sendHeightSoon);
+    window.addEventListener("resize", sendHeightSoon);
+  </script>
+
+</body>
+</html>
