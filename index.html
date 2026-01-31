@@ -419,7 +419,7 @@
 
     function render() {
       const cat = activeCat;
-      const priceUnitLabel = (cat === "plaques-platre") ? "€/m²" : "Tvac";
+      const priceUnitLabel = (cat === "plaques-platre") ? "Tvac / m²" : "Tvac";
 
       if (!cat || !IMAGES[cat]) {
         app.innerHTML = `<p class="muted">Aucune catégorie à afficher.</p>`;
