@@ -419,6 +419,7 @@
 
     function render() {
       const cat = activeCat;
+      const priceUnitLabel = (cat === "plaques-platre") ? "€/m²" : "Tvac";
 
       if (!cat || !IMAGES[cat]) {
         app.innerHTML = `<p class="muted">Aucune catégorie à afficher.</p>`;
@@ -477,7 +478,7 @@
             </div>
 
             <div class="price">
-              <div class="price-label">Tvac</div>
+              <div class="price-label">${priceUnitLabel}</div>
               ${price !== undefined
             ? `<div class="price-amount">
                     <span class="int">${formatPrice(price).split(".")[0]}</span>
@@ -512,7 +513,7 @@
               const s = formatPrice(price);
               const [intPart, decPart = "00"] = s.split(".");
               priceBox.innerHTML = `
-                <div class="price-label">Tvac</div>
+                <div class="price-label">${priceUnitLabel}</div>
                 <div class="price-amount">
                   <span class="int">${intPart}</span>
                   <span class="dec">${decPart}</span>
@@ -521,7 +522,7 @@
               `;
             } else {
               priceBox.innerHTML = `
-                <div class="price-label">Tvac</div>
+                <div class="price-label">${priceUnitLabel}</div>
                 <div class="price-amount muted">—</div>
               `;
             }
