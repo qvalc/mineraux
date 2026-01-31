@@ -312,3 +312,23 @@ header.top {
     display: block;
   }
 }
+
+.catIcon {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  overflow: hidden;
+  /* 🔥 coupe tout ce qui dépasse */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.catIcon img {
+  width: 70%;
+  /* taille contrôlée */
+  height: 70%;
+  object-fit: contain;
+  /* 🔥 garde proportions sans dépasser */
+}

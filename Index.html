@@ -25,9 +25,9 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script>
-  
+
     const IMAGES = {
-      "plaques-platre-et-bandes-a-joints": [
+      "plaques-platre": [
         "plaque-platre.png",
         "plaque-platre-4AK.png",
         "plaque-platre-hydro.png",
@@ -156,13 +156,21 @@
     const catButtons = document.getElementById("catButtons");
     const catSelect = document.getElementById("catSelect");
 
-    const CAT_ICONS = {};
+    const CAT_ICONS = {
+      "plaques-platre": "vignettes-boutons/plaques-platre.png",
+      "bandes-a-joints": "vignettes-boutons/bandes-a-joints.png",
+      "sacs": "vignettes-boutons/sacs.png",
+      "seaux": "vignettes-boutons/seaux.png",
+      "accessoires": "vignettes-boutons/accessoires.png",
+      "visserie": "vignettes-boutons/vis-phos.png"
+    };
+
 
     const CATEGORY_UI = [
-      { id: "plaques-platre-et-bandes-a-joints", label: "Plaques de plâtre" },
+      { id: "plaques-platre", label: "Plaques de plâtre" },
       { id: "bandes-a-joints", label: "Bandes à joints" },
-      { id: "sacs", label: "Conditionnements en sacs" },
-      { id: "seaux", label: "Conditionnements en Seaux" },
+      { id: "sacs", label: "Sacs" },
+      { id: "seaux", label: "Seaux" },
       { id: "accessoires", label: "Accessoires" },
       { id: "visserie", label: "Visserie" }
     ];
