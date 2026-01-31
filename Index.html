@@ -25,39 +25,106 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script>
-    /** =========================
-     *  IMAGES (à adapter à tes dossiers/fichiers)
-     *  Structure attendue:
-     *   - /liants/xxx.png
-     *   - /granulats/xxx.png
-     *  ========================= */
+  
     const IMAGES = {
-      "liants": [
-        "ciment.png",
-        "chaux.png",
-        "platre.png",
-        "mortier.png"
+      "plaques-platre-et-bandes-a-joints": [
+        "plaque-platre.png",
+        "plaque-platre-4AK.png",
+        "plaque-platre-hydro.png",
+        "plaque-platre-rf.png",
+        "gyplat.png",
       ],
-      "granulats": [
-        "sable-0-4.png",
-        "sable-0-2.png",
-        "gravier-4-8.png",
-        "gravier-8-16.png"
+
+      "bandes-a-joints": [
+        "fibatape.png",
+        "hpx-bande-de-joint-45m.png",
+        "toupret-bande-a-joint-armee.png",
+        "toupret-bande-a-joint-papier-150m.png"
+      ],
+
+      "sacs": [
+        "gyproc-wr-unique-25kg.png",
+        "gyproc-xpro.png",
+        "knauf-fix-finish.png",
+        "knauf-goldban.png",
+        "knauf-mp75.png",
+        "knauf-perlfix-25kg.png",
+        "knauf-snelband-25kg.png",
+        "knauf-snellgips-4kg.png",
+        "toupret-fill-finish-60.png",
+        "toupret-fix-fill-joint-45.png",
+      ],
+
+      "seaux": [
+        "toupret-g.png",
+        "toupret-joint-finish.png",
+        "toupret-reboucheur.png",
+        "knauf-f2f.png",
+        "knauf-filler-pasta.png",
+        "knauf-reno-band.png",
+        "toupret-airspray-g-25kg.png",
+        "toupret-tx120-saneo.png",
+        "toupret-tx140.png",
+        "toupret-durcisseur-1l.png",
+        "toupret-durcisseur-aerosol.png",
+        "toupret-fibacryl.png"
+      ],
+
+      "accessoires": [
+        "toupret-rouleau-a-enduire-180mm.png",
+      ],
+
+      "visserie": [
+        "vis-fibro-platre.png",
+        "vis-phosphatees-autof.png",
+        "vis-phosphatees-bande.png"
       ]
     };
 
-    /** NOMS D’AFFICHAGE (facultatif, sinon fallback auto) */
     const DISPLAY_NAMES = {
-      "liants/ciment.png": "Ciment",
-      "liants/chaux.png": "Chaux",
-      "liants/platre.png": "Plâtre",
-      "liants/mortier.png": "Mortier",
 
-      "granulats/sable-0-4.png": "Sable 0/4",
-      "granulats/sable-0-2.png": "Sable 0/2",
-      "granulats/gravier-4-8.png": "Gravier 4/8",
-      "granulats/gravier-8-16.png": "Gravier 8/16"
+      "galerie/fibatape.png": "Bande à joints fibre",
+      "galerie/hpx-bande-de-joint-45m.png": "Bande à joints HPX",
+      "galerie/toupret-bande-a-joint-armee.png": "Bande à joints armée",
+      "galerie/toupret-bande-a-joint-papier-150m.png": "Bande à joints papier 150 m",
+
+      "galerie/gyplat.png": "Gyplat plâtre",
+      "galerie/gyproc-wr-unique-25kg.png": "WR Unique",
+      "galerie/gyproc-xpro.png": "X Pro",
+
+      "galerie/knauf-f2f.png": "F2F",
+      "galerie/knauf-filler-pasta.png": "Filler Pasta",
+      "galerie/knauf-fix-finish.png": "Fix & Finish",
+      "galerie/knauf-goldban.png": "Goldband",
+      "galerie/knauf-mp75.png": "MP 75",
+      "galerie/knauf-perlfix-25kg.png": "Perlfix",
+      "galerie/knauf-reno-band.png": "Reno Band",
+      "galerie/knauf-snelband-25kg.png": "Snelband",
+      "galerie/knauf-snellgips-4kg.png": "Snellgips",
+
+      "galerie/plaque-platre.png": "Plaque plâtre",
+      "galerie/plaque-platre-4AK.png": "Plaque de plâtre 4AK",
+      "galerie/plaque-platre-hydro.png": "Plaque plâtre hydrofuge",
+      "galerie/plaque-platre-rf.png": "Plaque plâtre résistante au feu",
+
+      "galerie/toupret-airspray-g-25kg.png": "Airspray G 25 kg",
+      "galerie/toupret-durcisseur-1l.png": "Durcisseur 1 L",
+      "galerie/toupret-durcisseur-aerosol.png": "Durcisseur aérosol",
+      "galerie/toupret-fibacryl.png": "Fibacryl",
+      "galerie/toupret-fill-finish-60.png": "Fill & Finish 60",
+      "galerie/toupret-fix-fill-joint-45.png": "Fix Fill Joint 45",
+      "galerie/toupret-g.png": "Toupret G",
+      "galerie/toupret-joint-finish.png": "Joint & Finish",
+      "galerie/toupret-reboucheur.png": "Reboucheur",
+      "galerie/toupret-rouleau-a-enduire-180mm.png": "Rouleau à enduire 180 mm",
+      "galerie/toupret-tx120-saneo.png": "TX120 Sanéo",
+      "galerie/toupret-tx140.png": "TX140",
+
+      "galerie/vis-fibro-platre.png": "Vis phosphatées",
+      "galerie/vis-phosphatees-autof.png": "Vis phosphatées autoforante",
+      "galerie/vis-phosphatees-bande.png": "Vis phosphatées en bande"
     };
+
 
     /** Tailles fallback (si aucune taille n’est trouvée dans l’Excel) */
     const CAT_SIZES = {
@@ -73,20 +140,15 @@
       return CAT_SIZES[cat] || [""];
     }
 
-    /** =========================
-     *  PRIX / STOCK (inchangé)
-     *  ========================= */
+    /** ============
+     *  PRIX / STOCK
+     *  ============ */
     const PRICE_MANIFEST_URL = "prix/manifest.json";
 
-    /** Map prix: clé = "path|taille" => prix_tvac */
     let PRICE_MAP = Object.create(null);
 
-    /** Map stock: clé = "path|taille" => disponible (nombre)
-        Règle: vide = 0, <= 0 rupture, > 0 en stock
-    */
     let STOCK_MAP = Object.create(null);
 
-    /** Index tailles dispo par article (dérivé des fichiers prix) */
     let SIZES_BY_PATH = Object.create(null);
 
     // UI
@@ -94,17 +156,17 @@
     const catButtons = document.getElementById("catButtons");
     const catSelect = document.getElementById("catSelect");
 
-    /** Icônes des catégories (à mettre dans /vignettes-boutons/) */
-    const CAT_ICONS = {
-      "liants": "vignettes-boutons/liants.png",
-      "granulats": "vignettes-boutons/granulats.png"
-    };
+    const CAT_ICONS = {};
 
-    /** Ordre + libellés */
     const CATEGORY_UI = [
-      { id: "liants", label: "Liants" },
-      { id: "granulats", label: "Granulats" }
+      { id: "plaques-platre-et-bandes-a-joints", label: "Plaques de plâtre" },
+      { id: "bandes-a-joints", label: "Bandes à joints" },
+      { id: "sacs", label: "Conditionnements en sacs" },
+      { id: "seaux", label: "Conditionnements en Seaux" },
+      { id: "accessoires", label: "Accessoires" },
+      { id: "visserie", label: "Visserie" }
     ];
+
 
     const allowedCats = new Set(Object.keys(IMAGES));
     const categories = CATEGORY_UI.filter(c => allowedCats.has(c.id));
@@ -366,8 +428,8 @@
       let html = `<div class="grid">`;
 
       for (const f of files) {
-        const pathKey = `${cat}/${f}`;
-        const src = `${cat}/${encodeURIComponent(f)}`;
+        const pathKey = `galerie/${f}`;
+        const src = `galerie/${encodeURIComponent(f)}`;
 
         const label = (DISPLAY_NAMES[pathKey] ?? f)
           .replace(/\.(png|jpg|jpeg|webp)$/i, "")
@@ -409,13 +471,13 @@
             <div class="price">
               <div class="price-label">Tvac</div>
               ${price !== undefined
-                ? `<div class="price-amount">
+            ? `<div class="price-amount">
                     <span class="int">${formatPrice(price).split(".")[0]}</span>
                     <span class="dec">${formatPrice(price).split(".")[1] || "00"}</span>
                     <span class="eur">€</span>
                   </div>`
-                : `<div class="price-amount muted">—</div>`
-              }
+            : `<div class="price-amount muted">—</div>`
+          }
             </div>
           </figure>
         `;
@@ -508,4 +570,5 @@
   </script>
 
 </body>
+
 </html>
